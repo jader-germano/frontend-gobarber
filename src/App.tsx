@@ -1,19 +1,18 @@
 import React from 'react';
 import { BrowserRouter } from 'react-router-dom';
-import Routes from './routes/routes.index';
+
+import AppProvider from './hooks';
+import Routes from './routes';
 
 import GlobalStyled from './styles/global';
 
-import { AuthProvider } from './context/AuthContext';
-
 const App: React.FC = () => (
     <>
-        <AuthProvider>
+        <AppProvider>
             <BrowserRouter>
                 <Routes />
             </BrowserRouter>
-        </AuthProvider>
-
+        </AppProvider>
         <GlobalStyled />
     </>
 );
