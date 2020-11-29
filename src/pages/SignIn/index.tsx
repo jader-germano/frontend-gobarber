@@ -19,7 +19,6 @@ interface SignInFormData {
     email: string;
     password: string;
 }
-
 const SignIn: React.FC = () => {
     const formRef = useRef<FormHandles>(null);
     const { signIn } = useAuth();
