@@ -1,10 +1,9 @@
-import { FormHandles } from '@unform/core';
-import { Form } from '@unform/web';
-import React, { useCallback, useRef } from 'react';
-import { FiLock, FiLogIn, FiMail } from 'react-icons/fi';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
 import * as Yup from 'yup';
-
-import { Link, useHistory } from 'react-router-dom';
+import { FiLock, FiLogIn, FiMail } from 'react-icons/fi';
+import { Link, useNavigate } from 'react-router-dom';
 
 import logoImg from '../../assets/logo.svg';
 import Button from '../../components/Button/button.index';
@@ -12,47 +11,41 @@ import Input from '../../components/Input/input.index';
 
 import { useAuth } from '../../hooks/auth';
 import { useToast } from '../../hooks/toast';
-import getValidationErrors from '../../utils/getValidationErrors';
 import { Background, Container, AnimationContainer, Content } from './styles';
 
 interface SignInFormData {
     email: string;
     password: string;
 }
+
+const schema = Yup.object().shape({
+    email: Yup.string().required('E-mail obrigatório').email('Digite um e-mail válido'),
+    password: Yup.string().min(6, 'Senha mínima de 6 dígitos').required('Senha obrigatória'),
+});
+
 const SignIn: React.FC = () => {
-    const formRef = useRef<FormHandles>(null);
     const { signIn } = useAuth();
     const { addToast } = useToast();
-    const history = useHistory();
+    const navigate = useNavigate();
 
-    const handleSubmit = useCallback(
-        async (data: SignInFormData) => {
-            try {
-                formRef.current?.setErrors({});
-                const schema = Yup.object().shape({
-                    email: Yup.string().required('E-mail obrigatório').email('Digite um e-mail válido'),
-                    password: Yup.string().min(6, 'Senha obrigatória. Mínimo de 6 dígitos'),
-                });
-                await schema.validate(data, {
-                    abortEarly: false,
-                });
-                await signIn({ email: data.email, password: data.password });
-                history.push('/dashboard');
-            } catch (err) {
-                if (err instanceof Yup.ValidationError) {
-                    const errors = getValidationErrors(err);
-                    formRef.current?.setErrors(errors);
-                    return;
-                }
-                addToast({
-                    type: 'error',
-                    title: 'Erro na autenticação',
-                    description: 'Ocorreu um erro ao fazer login. Cheque as credenciais.',
-                });
-            }
-        },
-        [addToast, history, signIn],
-    );
+    const {
+        register,
+        handleSubmit,
+        formState: { errors, isSubmitting },
+    } = useForm<SignInFormData>({ resolver: yupResolver(schema) });
+
+    const onSubmit = async (data: SignInFormData) => {
+        try {
+            await signIn({ email: data.email, password: data.password });
+            navigate('/dashboard');
+        } catch {
+            addToast({
+                type: 'error',
+                title: 'Erro na autenticação',
+                description: 'Ocorreu um erro ao fazer login. Cheque as credenciais.',
+            });
+        }
+    };
 
     return (
         <Container>
@@ -60,15 +53,27 @@ const SignIn: React.FC = () => {
                 <AnimationContainer>
                     <img src={logoImg} alt="GoBarber" />
 
-                    <Form ref={formRef} onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit(onSubmit)}>
                         <h1>Faça seu logon</h1>
-                        <Input name="email" icon={FiMail} placeholder="E-mail" />
-                        <Input name="password" icon={FiLock} type="password" placeholder="Senha" />
-                        <Button name="submit" type="submit">
+                        <Input
+                            icon={FiMail}
+                            placeholder="E-mail"
+                            error={errors.email?.message}
+                            {...register('email')}
+                        />
+                        <Input
+                            icon={FiLock}
+                            type="password"
+                            placeholder="Senha"
+                            error={errors.password?.message}
+                            {...register('password')}
+                        />
+                        <Button type="submit" disabled={isSubmitting}>
                             Entrar
                         </Button>
                         <a href="forgot">Esqueci minha senha</a>
-                    </Form>
+                    </form>
+
                     <Link to="/sign-up">
                         <FiLogIn />
                         Criar Conta

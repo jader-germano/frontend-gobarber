@@ -1,53 +1,48 @@
-import React, { InputHTMLAttributes, useEffect, useRef, useState, useCallback } from 'react';
-import { useField } from '@unform/core';
+import React, { InputHTMLAttributes, forwardRef, useState } from 'react';
 import { IconBaseProps } from 'react-icons';
 import { FiAlertCircle } from 'react-icons/fi';
 import { InputContainer, Error } from './input.styles';
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
-    name: string;
     icon: React.ComponentType<IconBaseProps>;
+    error?: string;
 }
 
-const Input: React.FC<InputProps> = ({ name, icon: Icon, ...rest }) => {
-    const inputRef = useRef<HTMLInputElement>(null);
-    const [isFocused, setIsFocused] = useState(false);
-    const [isFilled, setIsFilled] = useState(false);
+const Input = forwardRef<HTMLInputElement, InputProps>(
+    ({ icon: Icon, error, onFocus, onBlur, ...rest }, ref) => {
+        const [isFocused, setIsFocused] = useState(false);
+        const [isFilled, setIsFilled] = useState(false);
 
-    const { fieldName, defaultValue, error, registerField } = useField(name);
+        const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+            setIsFocused(true);
+            onFocus?.(e);
+        };
 
-    const handleInputBlur = useCallback(() => {
-        setIsFocused(false);
-        setIsFilled(!!inputRef.current?.value);
-    }, []);
+        const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+            setIsFocused(false);
+            setIsFilled(!!e.target.value);
+            onBlur?.(e);
+        };
 
-    const handleInputFocused = useCallback(() => {
-        setIsFocused(true);
-    }, []);
+        return (
+            <InputContainer hasErrors={!!error} isFilled={isFilled} isFocused={isFocused}>
+                {Icon && <Icon size={16} />}
+                <input
+                    ref={ref}
+                    onFocus={handleFocus}
+                    onBlur={handleBlur}
+                    {...rest}
+                />
+                {error && (
+                    <Error title={error}>
+                        <FiAlertCircle color="#c53030" size={16} />
+                    </Error>
+                )}
+            </InputContainer>
+        );
+    },
+);
 
-    useEffect(() => {
-        registerField({
-            name: fieldName,
-            ref: inputRef.current,
-            path: 'value',
-        });
-    }, [fieldName, registerField]);
-    return (
-        <InputContainer hasErrors={!!error} isFilled={isFilled} isFocused={isFocused}>
-            {Icon && <Icon size={16} />}
-            <input
-                onFocus={handleInputFocused}
-                onBlur={handleInputBlur}
-                defaultValue={defaultValue}
-                ref={inputRef}
-                {...rest}
-            />
-            {error && (
-                <Error title={error}>
-                    <FiAlertCircle color="#c53030" size={16} />
-                </Error>
-            )}
-        </InputContainer>
-    );
-};
+Input.displayName = 'Input';
+
 export default Input;
